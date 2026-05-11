@@ -31,15 +31,15 @@
 #define sconf 1 // save configuration after thermalization if 0
 #define save 0 //save data if 0
 
-#define betal 2.7 // coupling value
+#define betal 2.6 // coupling value
 #define epsilonl 0.3 //range of update
 #define upd 1
 
-#define N 3000 //number of measures
-#define N_term 800 //number of thermalization
-#define N_block 100 // number of times it prints the result while running
-#define Nsave 20 //number of times it saves the results while running
-#define Nblock_term 20 // number of times it prints the result while thermalizing
+#define N 1000 //number of measures
+#define N_term 200 //number of thermalization
+#define N_block 5 // number of times it prints the result while running
+#define Nsave 5 //number of times it saves the results while running
+#define Nblock_term 5 // number of times it prints the result while thermalizing
 #define N_cor 3 //MC steps between measures
 
 #define W 80
@@ -219,7 +219,7 @@ accept=0;
 		t_fin = time(NULL);
 		printf("%d\n", t_fin - t_ini);
         print_det(phi,l);
-         #if Boundary==1
+        #if Boundary==1
 		accept = accept / ((double)(l.z-1)/l.z+1/(double)l.z/4);
         #endif
 		printf("Accept %lf\n",accept/N/N_cor);
@@ -236,7 +236,7 @@ accept=0;
 
 		save_autocorrelation(autoc, W, N, N_cor, Nterms, l,bound,nsave); save_autocorrelation_av(autoc2, W, N, N_cor, Nterms, l,bound,nsave);
         save_en_seq(measure2,measure,Nterms,N,N_cor,1,l,bound,nsave);
-#endif
+        #endif
 
 free(phi);free(measure);free(measure2);
 }
