@@ -12,7 +12,7 @@ aux+=heat_bath(A,phi+pos,l.beta,R);
 return aux;
 }
 
-double MC_sweep_dir(double* phi,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int*zm,struct lattice l,uint64_t* R,int id,int tthread){//update the full lattice
+double MC_sweep_pcc(double* phi,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int*zm,struct lattice l,uint64_t* R,int id,int tthread){//update the full lattice
 int accept2=0,t,x,y,z,taux,t_ini;
     for(taux=0;taux<tthread/2;taux++){
         t=2*taux+id*tthread;
