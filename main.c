@@ -19,13 +19,17 @@
 #include "functions/output.h"
 
 
-#define nthreads 4 //number of threads for parallel computing, MUST BE A DIVISOR OF d_t
+#define nthreads 4 //number of threads for parallel computing, 2*nthreads MUST BE A DIVISOR OF d_t
 #define d_z 8 //z direction size
 #define d_y 8 //y direction size
 #define d_x 8 //x direction size
 #define d_t 8 //t direction size
 
-#define Boundary 0 //define boundary condition, 0 for Periodic and 1 for Perfect colour conductor
+#if (d_t % (2*nthreads)) != 0
+#error "d_t must be divisible by 2*nthreads: each thread needs an even number of time slices for the even/odd update"
+#endif
+
+#define Boundary 1 //define boundary condition, 0 for Periodic and 1 for Perfect colour conductor
 #define readconf 0 //read initial configuration if 1 and thermalize, read conf and not thermalize if 2
 #define init 0 //0 hot start, 1 cold start
 #define sconf 1 // save configuration after thermalization if 0
@@ -111,12 +115,17 @@ t_ini = time(NULL); t_n = time(NULL);
 double energy[2],energy2[2];
 double autoc[W], autoc2[W];
 uint64_t seed=time(NULL);
+double acc_norm=1;//fraction of links updated per sweep
+#if Boundary==1
+acc_norm=(double)(l.z-1)/l.z+1/(double)l.z/4;//only the z link is updated on the z=0 plate
+#endif
 
-#pragma omp parallel private(i,j) reduction(+:accept)
+#pragma omp parallel private(i,j)
 {
 
 int id=omp_get_thread_num();
 int tthread=l.t/nthreads;// number of time sites each thread doess
+double acc=0;//acceptance of this thread, added to the shared accept with atomics
 
 
 
@@ -136,9 +145,9 @@ int t_inis = clock();
 #if readconf<2
 for (i=1;i<N_term+1;i++){//loop for thermalization
      #if Boundary==0
-     accept+=MC_sweep(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
+     acc+=MC_sweep(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
       #else
-     accept+=MC_sweep_pcc(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
+     acc+=MC_sweep_pcc(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
      #endif
 
     // print_det(phi,l);
@@ -150,18 +159,23 @@ for (i=1;i<N_term+1;i++){//loop for thermalization
 
 
     if (i % block_size_t == 0)  {
-				printf("%lf Time %d Left(min)%lf\n", (double)i / (N_term+1), time(NULL) - t_n, (double)(time(NULL) - t_ini) * (N_term+1 - i) / i / 60);
+				printf("%lf Time %d Left(min)%lf\n", (double)i / (N_term+1), (int)(time(NULL) - t_n), (double)(time(NULL) - t_ini) * (N_term+1 - i) / i / 60);
 				fflush(stdout);
 				t_n = time(NULL);
 			}
     }
 }
 
+#pragma omp atomic update
+accept+=acc;
+acc=0;
+#pragma omp barrier
 
 #pragma omp master
 {
 
-printf("Accept term %lf\n",accept/(N_term+1));
+printf("Accept term %lf\n",accept/N_term/acc_norm);
+accept=0;
 Nterms = N_term + Nterms;
 #if sconf == 0//save configuration
 			normalize(phi,l);
@@ -169,8 +183,7 @@ Nterms = N_term + Nterms;
 #endif
 print_det(phi,l);
 }
-
-accept=0;
+#pragma omp barrier //wait for master to finish normalizing/saving phi before sweeping again
 #endif
 
 
@@ -179,11 +192,14 @@ accept=0;
 		for (i = 1; i < N + 1; i++) {//loop for measuring
 			for (j = 0; j < N_cor; j++) {
 				 #if Boundary==0
-                 accept+=MC_sweep(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
+                 acc+=MC_sweep(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
                  #else
-                 accept+=MC_sweep_pcc(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
+                 acc+=MC_sweep_pcc(phi,tp,tm,xp,xm,yp,ym,zp,zm,l,sr,id,tthread);
                  #endif
 			}
+            #pragma omp atomic update
+            accept+=acc;
+            acc=0;
 			energy_av_par(phi,tp,xp,yp,zp,l,measure+i-1,measure2+i-1,id,tthread);// measure in parallel the energy and plaquette average
 
 			// print_det(phi,l);
@@ -195,7 +211,7 @@ accept=0;
 
 
 			if (i % block_size == 0) {//print time left
-				printf("%lf Time %d Left(hour)%lf\n", (double)i / N, time(NULL) - t_n, (double)(time(NULL) - t_ini) * (N - i) / i / 60/60);
+				printf("%lf Time %d Left(hour)%lf\n", (double)i / N, (int)(time(NULL) - t_n), (double)(time(NULL) - t_ini) * (N - i) / i / 60/60);
 				fflush(stdout);
 				t_n = time(NULL);
 			}
@@ -206,10 +222,10 @@ accept=0;
                 autocorrelation(measure, i, W, energy[0], energy[1], autoc); autocorrelation(measure2, i, W, energy2[0], energy2[1], autoc2);
                 fflush(stdout);
             #if save==0
-                save_energy(energy[0], energy[1], Nterms, i, N_cor, accept, l,bound,nsave);
-		        save_energy_av(energy[0], energy[1], energy2[0], energy2[1], Nterms, i, N_cor, accept, l,bound,nsave);
+                save_energy(energy[0], energy[1], Nterms, i, N_cor, accept/i/N_cor/acc_norm, l,bound,nsave);
+		        save_energy_av(energy[0], energy[1], energy2[0], energy2[1], Nterms, i, N_cor, accept/i/N_cor/acc_norm, l,bound,nsave);
                 save_autocorrelation(autoc, W, i, N_cor, Nterms, l,bound,nsave); save_autocorrelation_av(autoc2, W, i, N_cor, Nterms, l,bound,nsave);
-                save_en_seq(measure2,measure,Nterms,i,N_cor,1,l,bound,nsave);
+                save_en_seq(measure2,measure,Nterms,i,N_cor,accept/i/N_cor/acc_norm,l,bound,nsave);
             #endif
 			}
             }
@@ -219,10 +235,8 @@ accept=0;
 		t_fin = time(NULL);
 		printf("%d\n", t_fin - t_ini);
         print_det(phi,l);
-        #if Boundary==1
-		accept = accept / ((double)(l.z-1)/l.z+1/(double)l.z/4);
-        #endif
-		printf("Accept %lf\n",accept/N/N_cor);
+		accept = accept/N/N_cor/acc_norm;
+		printf("Accept %lf\n",accept);
 
 
 		mean_variance(measure, N, energy, true);
@@ -235,7 +249,7 @@ accept=0;
 		save_energy_av(energy[0], energy[1], energy2[0], energy2[1], Nterms, N, N_cor, accept, l,bound,nsave);
 
 		save_autocorrelation(autoc, W, N, N_cor, Nterms, l,bound,nsave); save_autocorrelation_av(autoc2, W, N, N_cor, Nterms, l,bound,nsave);
-        save_en_seq(measure2,measure,Nterms,N,N_cor,1,l,bound,nsave);
+        save_en_seq(measure2,measure,Nterms,N,N_cor,accept,l,bound,nsave);
         #endif
 
 free(phi);free(measure);free(measure2);

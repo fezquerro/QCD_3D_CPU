@@ -8,7 +8,7 @@ struct lattice {
 	int d;
 	int dg;
 	int dt;
-	float beta;
+	double beta;
 	float epsilon;
 	int updates;
 
