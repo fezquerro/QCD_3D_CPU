@@ -26,7 +26,7 @@ for(i=1;i<l.t;i++)//the negative derivative in t
 tm[0]=l.z*l.y*l.x*(l.t-1)*l.dt;
 }
 
-void compute_inter_z(double* A,double* phi,int pos,int pos_z, int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
+static inline void compute_inter_z(double* A,double* phi,int pos,int pos_z, int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
 double aux[4],aux2[4];
 su2_zero(A);
 su2_product_tc(phi+pos+zp[pos_z]+dg,phi+pos+yp[pos_y],aux);//y positive plaquette
@@ -60,7 +60,7 @@ su2_sum(A,aux2);
 
 }
 
-void compute_inter_y(double* A,double* phi,int pos,int pos_z, int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
+static inline void compute_inter_y(double* A,double* phi,int pos,int pos_z, int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
 double aux[4],aux2[4];
 su2_zero(A);
 su2_product_tc(phi+pos+yp[pos_y],phi+pos+zp[pos_z]+dg,aux);//z positive plaquette
@@ -94,7 +94,7 @@ su2_sum(A,aux2);
 
 }
 
-void compute_inter_x(double*A,double*phi,int pos,int pos_z,int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
+static inline void compute_inter_x(double*A,double*phi,int pos,int pos_z,int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
 double aux[4],aux2[4];
 su2_zero(A);
 su2_product_tc(phi+pos+xp[pos_x],phi+pos+zp[pos_z]+2*dg,aux);//z positive plaquette
@@ -127,7 +127,7 @@ su2_product(aux,phi+pos+tm[pos_t]+3*dg,aux2);
 su2_sum(A,aux2);
 }
 
-void compute_inter_t(double*A,double*phi,int pos,int pos_z, int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
+static inline void compute_inter_t(double*A,double*phi,int pos,int pos_z, int pos_y,int pos_x,int pos_t,int *tp,int *tm,int *xp,int *xm,int *yp,int *ym,int *zp,int *zm,int dg){//compute the term that multiplies the U plaquete
 double aux[4],aux2[4];
 su2_zero(A);
 su2_product_tc(phi+pos+tp[pos_t],phi+pos+zp[pos_z]+3*dg,aux);//z positive plaquette

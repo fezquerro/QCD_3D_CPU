@@ -104,6 +104,8 @@ print_det(phi,l);
 int tp[l.t],tm[l.t],xp[l.x],xm[l.x],yp[l.y],ym[l.y],zp[l.z],zm[l.z],i,j; movement_computing(tp,tm,xp,xm,yp,ym,zp,zm,l);//Compute the movements along the lattice for the derivatives
 double* measure = (double*)malloc(N * sizeof(double)), accept=0;//define the array where the measures will be saved
 double* measure2 = (double*)malloc(N * sizeof(double));
+double* measure_prof = (double*)calloc(N * l.z, sizeof(double));//T_zz per z slice for each measure
+double profile[2*d_z];//mean and variance of T_zz per z slice
 
 
 for(i=0;i<N;i++){
@@ -200,7 +202,7 @@ print_det(phi,l);
             #pragma omp atomic update
             accept+=acc;
             acc=0;
-			energy_av_par(phi,tp,xp,yp,zp,l,measure+i-1,measure2+i-1,id,tthread);// measure in parallel the energy and plaquette average
+			energy_av_par(phi,tp,xp,yp,zp,l,measure+i-1,measure2+i-1,measure_prof+(i-1)*l.z,id,tthread);// measure in parallel the energy and plaquette average
 
 			// print_det(phi,l);
             if(i%100==0)
@@ -226,6 +228,8 @@ print_det(phi,l);
 		        save_energy_av(energy[0], energy[1], energy2[0], energy2[1], Nterms, i, N_cor, accept/i/N_cor/acc_norm, l,bound,nsave);
                 save_autocorrelation(autoc, W, i, N_cor, Nterms, l,bound,nsave); save_autocorrelation_av(autoc2, W, i, N_cor, Nterms, l,bound,nsave);
                 save_en_seq(measure2,measure,Nterms,i,N_cor,accept/i/N_cor/acc_norm,l,bound,nsave);
+                mean_variance_profile(measure_prof, i, l.z, profile);
+                save_profile(profile, Nterms, i, N_cor, l, bound, nsave); save_profile_seq(measure_prof, Nterms, i, N_cor, l, bound, nsave);
             #endif
 			}
             }
@@ -250,7 +254,9 @@ print_det(phi,l);
 
 		save_autocorrelation(autoc, W, N, N_cor, Nterms, l,bound,nsave); save_autocorrelation_av(autoc2, W, N, N_cor, Nterms, l,bound,nsave);
         save_en_seq(measure2,measure,Nterms,N,N_cor,accept,l,bound,nsave);
+        mean_variance_profile(measure_prof, N, l.z, profile);
+        save_profile(profile, Nterms, N, N_cor, l, bound, nsave); save_profile_seq(measure_prof, Nterms, N, N_cor, l, bound, nsave);
         #endif
 
-free(phi);free(measure);free(measure2);
+free(phi);free(measure);free(measure2);free(measure_prof);
 }

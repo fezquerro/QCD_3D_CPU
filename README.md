@@ -34,11 +34,19 @@ This code was primarily developed and used to generate the results presented in 
 
 For compiling in Linux 
 ```bash
-gcc -o ejecutable main.c -lm -fopenmp
+gcc -O2 -o ejecutable main.c -lm -fopenmp
 ```
+Always compile with optimization: without `-O2` the code runs about 2.4 times slower.
+
+For the fastest build on the machine where it will run, use `-O3 -march=native` together with `-fno-tree-vectorize`
+```bash
+gcc -O3 -march=native -fno-tree-vectorize -o ejecutable main.c -lm -fopenmp
+```
+`-fno-tree-vectorize` is needed because gcc's automatic vectorization makes this code slower. `-march=native` optimizes for the CPU of the machine that compiles, so compile on the same type of node where the simulation runs.
+
 For compiling in Windows IDEs like Codeblocks add
 ``` bash
--fopenmp
+-O2 -fopenmp
 ```
-in "other compiler options" in the compiler settings.
+(or `-O3 -march=native -fno-tree-vectorize -fopenmp`) in "other compiler options" in the compiler settings.
 

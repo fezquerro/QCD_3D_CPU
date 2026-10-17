@@ -59,7 +59,7 @@ static inline uint64_t rotl(const uint64_t x, int k) {
 
 //static uint64_t s[4];
 
-double Random_xor(uint64_t* s ) {
+static inline double Random_xor(uint64_t* s ) {
 	const uint64_t result = s[0] + s[3];
 
 	const uint64_t t = s[1] << 17;

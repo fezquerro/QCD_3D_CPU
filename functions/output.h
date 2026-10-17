@@ -100,3 +100,35 @@ void save_conf(double* phi, struct lattice l,int N_term,int init, char bound[12]
 	fprintf(f, "N_termalization %d Type_termalization %d", N_term, init);
 	fclose(f);
 }
+
+void save_profile(double* results, int N_term, int N, int N_cor, struct lattice l, char bound[12], char nsave[3]) {
+	char filename[256]; FILE* f;
+	snprintf(filename, sizeof(filename), "Profile_%d_%d_%d_%d_B_%.2lf_%s_%s.txt", l.t, l.x, l.y, l.z, l.beta, bound, nsave);
+	if ((f = fopen(filename, "w")) == NULL) {
+		printf("Error creating the file");
+		exit(1);
+	}
+	fprintf(f, "N_termalizacion %d N %d N_correlation %d N_updates %d  D_t %d D_x %d D_y %d D_z %d beta %.2lf\n", N_term, N, N_cor, l.updates, l.t, l.x, l.y, l.z, l.beta);
+	fprintf(f, "z Tzz(z)=(Pz(z-1)+Pz(z))/2-Pnz(z) Error\n");
+	for (int z = 0; z < l.z; z++)
+		fprintf(f, "%d %.10lf %.10lf\n", z, results[2*z], sqrt(results[2*z+1] / (N - 1)));
+	fclose(f);
+}
+
+void save_profile_seq(double* prof, int N_term, int N, int N_cor, struct lattice l, char bound[12], char nsave[3]) {
+	char filename[256]; FILE* f;
+	snprintf(filename, sizeof(filename), "Profile_seq_%d_%d_%d_%d_B_%.2lf_%s_%s.txt", l.t, l.x, l.y, l.z, l.beta, bound, nsave);
+	if ((f = fopen(filename, "w")) == NULL) {
+		printf("Error creating the file");
+		exit(1);
+	}
+	fprintf(f, "N_termalizacion %d N %d N_correlation %d N_updates %d  D_t %d D_x %d D_y %d D_z %d beta %.2lf\n", N_term, N, N_cor, l.updates, l.t, l.x, l.y, l.z, l.beta);
+	fprintf(f, "I Tzz(z=0) ... Tzz(z=D_z-1)\n");
+	for (int i = 0; i < N; i++) {
+		fprintf(f, "%d", i);
+		for (int z = 0; z < l.z; z++)
+			fprintf(f, " %.10lf", prof[i*l.z+z]);
+		fprintf(f, "\n");
+	}
+	fclose(f);
+}
